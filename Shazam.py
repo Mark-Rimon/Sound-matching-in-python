@@ -13,7 +13,7 @@ def loadWav(wavPath):
 
 def printAllMetaData():  # Only used when testing
     print("Sample Rate: ", sampleRate, "Hz")
-    print("Duration: ", duration, "s")
+    print("Duration: ", fullDuration, "s")
     print("Is Mono? ->", isMono)
     print("data: ", data)
 
@@ -102,11 +102,12 @@ def slidingWindow(data, sampleRate, clipTimeStampSec, clipDurationSec, windowSte
 # ______LOADING______
 wavPath = 'goofyAhh.wav'
 # TODO take input for this field instead
+
 data, sampleRate = loadWav(wavPath)
 # FAHHHHHHHHHHHHHHH 🔥🔥🔥
 
 # ______METADATA______
-duration = getDurationSec(data, sampleRate)
+fullDuration = getDurationSec(data, sampleRate)
 isMono = checkIsMono(data)
 
 printAllMetaData()
@@ -119,7 +120,7 @@ monoDataLength = mono.shape[0]
 printAllPlotRelatedVariables()
 # TODO remove this line when done testing
 
-plotTimeDomain(getAppropriateHorizontalAxis(duration, monoDataLength), mono, "Original Signal")
+plotTimeDomain(getAppropriateHorizontalAxis(fullDuration, monoDataLength), mono, "Original Signal")
 
 # ______CLIPPING______
 
@@ -128,21 +129,17 @@ clipDurationSec = 4
 # TODO replace the values with input functions when testing concludes
 
 clip, clipLength = extractClip(mono, sampleRate, clipTimestampSec, clipDurationSec)
-
 plotTimeDomain(getAppropriateHorizontalAxis(clipDurationSec, clipLength), clip, "Clipped Signal")
+
 printAllClipRelatedVariables()
-
-
 # TODO remove this line when done testing
 
 # ______FAST FOURIER TRANSFORM______
 
 def fourierTransform(signal, signalDuration):
     fourierSignal = fft(signal)
-    freqData = 2 / signalDuration * np.abs(freqDataRaw[0:np.int64(signalDuration / 2)])
-    return
-    # INCOMPLETE JUST TRYING TO UNSPAGHETTIFY FURTHER IF POSSIBLE
-
+    returnFFTSignal = 2/signalDuration * np.abs(fourierSignal[0:np.int64(signalDuration/2)])
+    return returnFFTSignal
 
 freqDataRaw = fft(clip)
 freqData = 2 / clipLength * np.abs(freqDataRaw[0:np.int64(clipLength / 2)])
@@ -156,3 +153,20 @@ printAllFrequncyDomainRelatedVariables()
 # TODO remove this line when done testing
 
 # ______SLIDING WINDOW ALGORITHM______
+
+def windowAlgorithm(data, sampleRate, windowStep):
+    #Init variables
+    windowLengthSec = clipDurationSec
+    windowStart = 0
+    windowEnd = windowLengthSec
+    while(windowLengthSec < fullDuration):
+
+        # Extract a clip (the window itself)
+        windowDuration = windowEnd - windowStart
+        extractClip(data, sampleRate, windowStart, windowDuration)
+        #TODO add fft step here
+
+        #Increment window by step
+        windowStart = windowStart + windowStep
+        windowEnd = min(fullDuration, windowEnd + windowStep)
+
