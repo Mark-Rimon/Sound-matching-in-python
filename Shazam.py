@@ -4,112 +4,155 @@ from scipy.io import wavfile as wavfile
 from scipy.fftpack import fft
 import warnings
 
+
 def loadWav(wavPath):
-    with warnings.catch_warnings(action="ignore"): #ignore that stupid warning
+    with warnings.catch_warnings(action="ignore"):  # ignore that stupid warning
         sampleRate, data = wavfile.read(wavPath)
     return data, sampleRate
 
-def printAllMetaData(): #Only used when testing
-    print("Sample Rate: ", sampleRate)
-    print("Duration: ", duration)
+
+def printAllMetaData():  # Only used when testing
+    print("Sample Rate: ", sampleRate, "Hz")
+    print("Duration: ", duration, "s")
     print("Is Mono? ->", isMono)
     print("data: ", data)
 
-def printAllPlotRelatedVariables(): #Also only used when testing
-    print("Time Axis: ", timeAxis) #Does not print fully in some IDE's
+
+def printAllPlotRelatedVariables():  # Also only used when testing
     print("Mono: ", mono)
 
+
 def printAllClipRelatedVariables():
-    print("Clip Time Axis: ",clipTimeAxis)
-    print("Clip: ",clip)
+    print("Clip: ", clip)
+    print("Clip Timestamp: ", clipTimestampSec, "s")
+    print("CLip Duration: ", clipDurationSec, "s")
+
 
 def printAllFrequncyDomainRelatedVariables():
     print("Raw Frequency data", freqDataRaw)
     print("Frequency data: ", freqData)
     print("Frequency range", frequencyRange)
 
+
+def getAppropriateHorizontalAxis(dataRange, dataSteps):
+    return np.linspace(0, dataRange, dataSteps)
+
+
+def plotTimeDomain(t, y, label):
+    plt.plot(t, y)
+    plt.title(label)
+    plt.xlabel("Time")
+    plt.ylabel("Amplitude")
+    plt.show()
+
+
+def plotFrequencyDomain(t, y, label):
+    plt.plot(t, y)
+    plt.title(label)
+    plt.xlabel("Frequency / Hz")
+    plt.ylabel("Amplitude")
+    plt.show()
+
+
 def checkIsMono(data):
-        x,y = data.shape
-        return y == 1
+    x, y = data.shape
+    return y == 1
+
 
 def getDurationSec(data, sampleRate):
-    return round(len(data)/sampleRate,0)
+    return len(data) / sampleRate, 0
+    # no need to round as doing so will stretch x-axis unnecessarily
+
 
 def convertToMono(data):
-        if(checkIsMono(data)):
-            return data
-        monoData = data.mean(axis=1)
-        return monoData
+    if (checkIsMono(data)):
+        print("wasmono")
+        return data
+    print("wasnotmono")
+    monoData = data.mean(axis=1)
+    return monoData
+
 
 def extractClip(data, sampleRate, clipTimestampSec, clipDurationSec):
+    clipTimestampSample = np.int64(sampleRate * clipTimestampSec)
 
-    clipTimestampSample = sampleRate * clipTimestampSec
-
-    clipDurationSample = sampleRate * clipDurationSec
+    clipDurationSample = np.int64(sampleRate * clipDurationSec)
 
     clipEndSample = clipTimestampSample + clipDurationSample
 
-    return data[clipTimestampSample:clipEndSample]
-    #spaced out lines so it doesn't look like an eyesore
+    return data[clipTimestampSample:clipEndSample], clipDurationSample
+    # spaced out lines so it doesn't look like an eyesore
 
-#______LOADING______
+
+def slidingWindow(data, sampleRate, clipTimeStampSec, clipDurationSec, windowSteps):
+    signalDuration = len(data)
+    windowLengthSec = clipDurationSec
+    clip, clipLength = extractClip(data, sampleRate, clipTimeStampSec, clipDurationSec)
+    clipFFT = fft(clip)
+    clipData = 2 / clipLength * np.abs(freqDataRaw[0:np.int64(clipLength / 2)])
+
+    for i in range(signalDuration / windowSteps):
+        window, windowLength = extractClip(data, sampleRate, i * windowSteps, clipDurationSec)
+        windowFFT = fft(window)
+        windowData = windowData = 2 / windowLength * np.abs(freqDataRaw[0:np.int64(windowLength / 2)])
+
+    return
+
+
+# ______LOADING______
 wavPath = 'goofyAhh.wav'
-#TODO take input for this field instead
+# TODO take input for this field instead
 data, sampleRate = loadWav(wavPath)
+# FAHHHHHHHHHHHHHHH 🔥🔥🔥
 
-#______METADATA______
+# ______METADATA______
 duration = getDurationSec(data, sampleRate)
 isMono = checkIsMono(data)
 
 printAllMetaData()
-#TODO remove this line when done testing
+# TODO remove this line when done testing
 
-#______MONO CONVERSION______
+# ______MONO CONVERSION______
 mono = convertToMono(data)
 monoDataLength = mono.shape[0]
 
-timeAxis = np.linspace(0,monoDataLength,monoDataLength) #Horizontal axis
-
 printAllPlotRelatedVariables()
-#TODO remove this line when done testing
+# TODO remove this line when done testing
 
-plt.plot(timeAxis,mono)
-plt.show()
+plotTimeDomain(getAppropriateHorizontalAxis(duration, monoDataLength), mono, "Original Signal")
 
-#______CLIPPING______
+# ______CLIPPING______
 
 clipTimestampSec = 5
 clipDurationSec = 4
-#TODO replace the values with input functions when testing concludes
+# TODO replace the values with input functions when testing concludes
 
-clip = extractClip(mono, sampleRate, clipTimestampSec, clipDurationSec)
-clipLength = clip.shape[0]
+clip, clipLength = extractClip(mono, sampleRate, clipTimestampSec, clipDurationSec)
 
-clipTimeAxis = np.linspace(0,clipLength,clipLength)
-
-plt.plot(clipTimeAxis,clip)
-plt.show()
-
+plotTimeDomain(getAppropriateHorizontalAxis(clipDurationSec, clipLength), clip, "Clipped Signal")
 printAllClipRelatedVariables()
-#TODO remove this line when done testing
 
-#______FAST FOURIER TRANSFORM______
+
+# TODO remove this line when done testing
+
+# ______FAST FOURIER TRANSFORM______
+
+def fourierTransform(signal, signalDuration):
+    fourierSignal = fft(signal)
+    freqData = 2 / signalDuration * np.abs(freqDataRaw[0:np.int64(signalDuration / 2)])
+    return
+    # INCOMPLETE JUST TRYING TO UNSPAGHETTIFY FURTHER IF POSSIBLE
+
+
 freqDataRaw = fft(clip)
-freqData = 2/clipLength * np.abs(freqDataRaw[0:np.int64(clipLength/2)])
+freqData = 2 / clipLength * np.abs(freqDataRaw[0:np.int64(clipLength / 2)])
 
-#______FREQUENCY DOMAIN & VISUALISATION______
-frequencyRange = np.int64(clipLength/2)
-frequency = np.linspace(0,frequencyRange,frequencyRange)
-plt.plot(frequency,freqData)
-plt.show()
+# ______FREQUENCY DOMAIN & VISUALISATION______
+frequencyRange = np.int64(clipLength / 2)
+frequency = np.linspace(0, sampleRate / 2, frequencyRange)
 
+plotFrequencyDomain(getAppropriateHorizontalAxis(sampleRate / 2, frequencyRange), freqData, "Frequency Domain Signal")
 printAllFrequncyDomainRelatedVariables()
-#TODO remove this line when done testing
+# TODO remove this line when done testing
 
-
-
-
-
-
-
-
+# ______SLIDING WINDOW ALGORITHM______
