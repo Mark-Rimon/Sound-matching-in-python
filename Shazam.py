@@ -87,8 +87,12 @@ def fourierTransform(signal, signalDuration):
     returnFFTSignal = 2/signalDuration * np.abs(fourierSignal[0:np.int64(signalDuration/2)])
     return returnFFTSignal
 
-def windowAlgorithm(data, sampleRate, windowStep):
+def windowAlgorithm(data, clip, sampleRate, windowStep):
     #Init variables
+    bestSimScore = 0
+    bestMatch = []
+    bestMatchTimestamp = 0
+    clipFFT = fourierTransform(clip, getDurationSec(clip, sampleRate))
     windowLengthSec = clipDurationSec
     windowStart = 0
     windowEnd = windowLengthSec
@@ -96,14 +100,23 @@ def windowAlgorithm(data, sampleRate, windowStep):
 
         # Extract a clip (the window itself)
         windowData, windowLengthSamples = extractClip(data, sampleRate, windowStart, windowLengthSec)
-        fourierTransform(windowData, windowLengthSamples)
+        windowFFT = fourierTransform(windowData, windowLengthSamples)
+        simScore = np.dot(clipFFT, windowFFT) / (np.linalg.norm(clipFFT) * np.linalg.norm(windowFFT))
+        if (simScore > bestSimScore):
+            bestSimScore = simScore
+            bestMatch = windowData
+            bestMatchTimestamp = windowStart
+        
 
         tempLabel = "Window between " + str(windowStart) + " and " + str(windowEnd)
-        plotFrequencyDomain(getAppropriateHorizontalAxis(min(windowLengthSec, windowEnd - windowStart), windowLengthSamples), windowData, "Window")
-
+        plotTimeDomain(getAppropriateHorizontalAxis(min(windowLengthSec, windowEnd - windowStart), windowLengthSamples), windowData, "Window")
+        
         #Increment window by step
         windowStart = windowStart + windowStep
         windowEnd = min(fullDuration, windowEnd + windowStep)
+    
+    return bestMatch,bestMatchTimestamp,bestSimScore
+
 
 
 # ______LOADING______
@@ -154,6 +167,8 @@ printAllFrequncyDomainRelatedVariables()
 
 # ______SLIDING WINDOW ALGORITHM______
 
-windowAlgorithm(mono, sampleRate, 4)
+bestMatch,bestMatchTimestamp,bestSimScore = windowAlgorithm(mono, clip, sampleRate, 4)
+plotTimeDomain(getAppropriateHorizontalAxis(getDurationSec(bestMatch, sampleRate), ), 0, "Best Match YYYAAAAAAAAAYYYYYYYY")
+#THIS IS NOT A CORRECT PLOT FUNCTION I'M JUST TOO TIRED TO CONTINUE WORK ON TS FOR NOW
 
 
