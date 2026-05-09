@@ -29,7 +29,6 @@ def printAllClipRelatedVariables():
 
 
 def printAllFrequncyDomainRelatedVariables():
-    print("Raw Frequency data", freqDataRaw)
     print("Frequency data: ", freqData)
     print("Frequency range", frequencyRange)
 
@@ -60,7 +59,7 @@ def checkIsMono(data):
 
 
 def getDurationSec(data, sampleRate):
-    return len(data) / sampleRate, 0
+    return len(data) / sampleRate
     # no need to round as doing so will stretch x-axis unnecessarily
 
 
@@ -83,20 +82,28 @@ def extractClip(data, sampleRate, clipTimestampSec, clipDurationSec):
     return data[clipTimestampSample:clipEndSample], clipDurationSample
     # spaced out lines so it doesn't look like an eyesore
 
+def fourierTransform(signal, signalDuration):
+    fourierSignal = fft(signal)
+    returnFFTSignal = 2/signalDuration * np.abs(fourierSignal[0:np.int64(signalDuration/2)])
+    return returnFFTSignal
 
-def slidingWindow(data, sampleRate, clipTimeStampSec, clipDurationSec, windowSteps):
-    signalDuration = len(data)
+def windowAlgorithm(data, sampleRate, windowStep):
+    #Init variables
     windowLengthSec = clipDurationSec
-    clip, clipLength = extractClip(data, sampleRate, clipTimeStampSec, clipDurationSec)
-    clipFFT = fft(clip)
-    clipData = 2 / clipLength * np.abs(freqDataRaw[0:np.int64(clipLength / 2)])
+    windowStart = 0
+    windowEnd = windowLengthSec
+    while(windowLengthSec < fullDuration):
 
-    for i in range(signalDuration / windowSteps):
-        window, windowLength = extractClip(data, sampleRate, i * windowSteps, clipDurationSec)
-        windowFFT = fft(window)
-        windowData = windowData = 2 / windowLength * np.abs(freqDataRaw[0:np.int64(windowLength / 2)])
+        # Extract a clip (the window itself)
+        windowData, windowLengthSamples = extractClip(data, sampleRate, windowStart, windowLengthSec)
+        fourierTransform(windowData, windowLengthSamples)
 
-    return
+        tempLabel = "Window between " + str(windowStart) + " and " + str(windowEnd)
+        plotFrequencyDomain(getAppropriateHorizontalAxis(min(windowLengthSec, windowEnd - windowStart), windowLengthSamples), windowData, "Window")
+
+        #Increment window by step
+        windowStart = windowStart + windowStep
+        windowEnd = min(fullDuration, windowEnd + windowStep)
 
 
 # ______LOADING______
@@ -128,45 +135,25 @@ clipTimestampSec = 5
 clipDurationSec = 4
 # TODO replace the values with input functions when testing concludes
 
-clip, clipLength = extractClip(mono, sampleRate, clipTimestampSec, clipDurationSec)
-plotTimeDomain(getAppropriateHorizontalAxis(clipDurationSec, clipLength), clip, "Clipped Signal")
+clip, clipLengthSamples = extractClip(mono, sampleRate, clipTimestampSec, clipDurationSec)
+plotTimeDomain(getAppropriateHorizontalAxis(clipDurationSec, clipLengthSamples), clip, "Clipped Signal")
 
 printAllClipRelatedVariables()
 # TODO remove this line when done testing
 
 # ______FAST FOURIER TRANSFORM______
 
-def fourierTransform(signal, signalDuration):
-    fourierSignal = fft(signal)
-    returnFFTSignal = 2/signalDuration * np.abs(fourierSignal[0:np.int64(signalDuration/2)])
-    return returnFFTSignal
-
-freqDataRaw = fft(clip)
-freqData = 2 / clipLength * np.abs(freqDataRaw[0:np.int64(clipLength / 2)])
+freqData = fourierTransform(clip, clipLengthSamples)
 
 # ______FREQUENCY DOMAIN & VISUALISATION______
-frequencyRange = np.int64(clipLength / 2)
-frequency = np.linspace(0, sampleRate / 2, frequencyRange)
+frequencyRange = np.int64(clipLengthSamples / 2)
 
-plotFrequencyDomain(getAppropriateHorizontalAxis(sampleRate / 2, frequencyRange), freqData, "Frequency Domain Signal")
+plotFrequencyDomain(getAppropriateHorizontalAxis(sampleRate/2, frequencyRange), freqData, "Frequency Domain Signal")
 printAllFrequncyDomainRelatedVariables()
 # TODO remove this line when done testing
 
 # ______SLIDING WINDOW ALGORITHM______
 
-def windowAlgorithm(data, sampleRate, windowStep):
-    #Init variables
-    windowLengthSec = clipDurationSec
-    windowStart = 0
-    windowEnd = windowLengthSec
-    while(windowLengthSec < fullDuration):
+windowAlgorithm(mono, sampleRate, 4)
 
-        # Extract a clip (the window itself)
-        windowDuration = windowEnd - windowStart
-        extractClip(data, sampleRate, windowStart, windowDuration)
-        #TODO add fft step here
-
-        #Increment window by step
-        windowStart = windowStart + windowStep
-        windowEnd = min(fullDuration, windowEnd + windowStep)
 
