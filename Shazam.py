@@ -45,6 +45,7 @@ def plotGraph(dataRange, dataSteps, signal, label, frequencyMode):
 
     plt.plot(getAppropriateHorizontalAxis(dataRange, dataSteps), signal)
     plt.title(label)
+    plt.grid(True)
 
     if frequencyMode:
         plt.xlabel("Frequency / Hz")
@@ -58,6 +59,7 @@ def defineSubplot(subplot, dataRange, dataSteps, signal, label, color):
         subplot.set_title(label)
         subplot.set_xlabel("Time / Sec")
         subplot.set_ylabel("Amplitude")
+        subplot.grid(True)
 
 def getDurationSec(data):
     return len(data) / sampleRate
